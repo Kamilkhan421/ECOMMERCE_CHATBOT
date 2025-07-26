@@ -27,3 +27,28 @@ router.post('/', async (req, res) => {
 });
 
 module.exports = router;
+const express = require('express');
+const { parseQuestionWithLLM } = require('../utils/questionParser');
+const db = require('../config/db'); // Assuming you have db connection here
+
+router.post('/', async (req, res) => {
+  const { question } = req.body;
+
+  try {
+    const parsedResponse = await parseQuestionWithLLM(question);
+
+    // (Optional) If parsedResponse is SQL, run it directly
+    if (parsedResponse.toLowerCase().startsWith('select')) {
+      const [rows] = await db.query(parsedResponse);
+      return res.json({ answer: rows });
+    }
+
+    // Else return the message
+    res.json({ answer: parsedResponse });
+  } catch (err) {
+    console.error('Chatbot error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+module.exports = router;

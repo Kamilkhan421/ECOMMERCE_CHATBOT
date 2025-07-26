@@ -32,3 +32,35 @@ function getSQLFromQuestion(question) {
 }
 
 module.exports = { getSQLFromQuestion };
+// utils/questionParser.js
+const axios = require('axios');
+
+async function parseQuestionWithLLM(question) {
+  try {
+    const res = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+      model: 'llama3-8b-8192',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant who transforms natural language into SQL queries or instructions to fetch from a MySQL database.',
+        },
+        {
+          role: 'user',
+          content: `Question: "${question}". Generate a SQL or explain what data to fetch.`,
+        },
+      ],
+    }, {
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return res.data.choices[0].message.content.trim();
+  } catch (err) {
+    console.error('LLM Error:', err.response?.data || err.message);
+    return 'Failed to parse question using LLM.';
+  }
+}
+
+module.exports = { parseQuestionWithLLM };
